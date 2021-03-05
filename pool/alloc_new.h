@@ -15,6 +15,7 @@ public:
     AllocNew(){}
 
     AllocNew(int thread_num){
+        cout<<"*pool*"<<endl;
         alloc = new Allocator(thread_num, nullptr);
         pool = new Pool(thread_num, alloc, nullptr);
     }

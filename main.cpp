@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "timer.h"
-#include "new/alloc_new.h"
+#include "mlq/alloc_new.h"
 
 using namespace std;
 
@@ -46,6 +46,8 @@ ThreadBarrier * threadBarrier;
 atomic<int> stopMeasure(0);
 
 thread_local size_t op_index;
+thread_local size_t read_cumulate;
+size_t g_read_cumulate;
 
 void concurrent_worker(int tid){
     //init
@@ -72,6 +74,8 @@ void concurrent_worker(int tid){
         for(size_t i = 0; i < TEST_NUM; i ++){
             size_t next_index =( op_index + 1 ) % TEST_BLOCK_SIZE;
             tblock.data[op_index] = m_alloc->allocate(tid);
+
+            read_cumulate += *(size_t *)tblock.data[next_index];
             m_alloc->deallocate(tid,tblock.data[next_index]);
             op_index = next_index;
         }
@@ -82,6 +86,7 @@ void concurrent_worker(int tid){
         }
     }
 
+    g_read_cumulate += read_cumulate;
     timer->recordRunTime(tid);
 
 }
@@ -111,6 +116,7 @@ int main(int argc, char **argv) {
     for(int i = 0; i < THREAD_NUM; i++) threads.push_back(thread(concurrent_worker,i));
     for(int i = 0; i < THREAD_NUM; i++) threads[i].join();
 
+    cout<<"num prevented optimizations "<<g_read_cumulate<<endl;
     cout<<"throughput "<<timer->getThroughPut()<<endl;
 
     return 0;

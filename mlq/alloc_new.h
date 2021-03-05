@@ -11,6 +11,7 @@ public:
     AllocNew(){}
 
     AllocNew(int thread_num){
+        cout<<"*mlq*"<<endl;
         mlqs = new Mlq[thread_num];
     }
 

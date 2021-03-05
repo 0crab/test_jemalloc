@@ -8,7 +8,9 @@ public:
 
     AllocNew(){}
 
-    AllocNew(int thread_num){}
+    AllocNew(int thread_num){
+        cout<<"*malloc*"<<endl;
+    }
 
     void initThread(int tid){}
 
