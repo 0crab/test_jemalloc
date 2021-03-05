@@ -36,7 +36,6 @@ MultiLevelQueue<T>::MultiLevelQueue() {
 template <typename T>
 uint64_t MultiLevelQueue<T>::get_total_size() {
     return size;
-
 }
 
 template<typename T>

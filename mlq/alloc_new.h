@@ -17,7 +17,7 @@ public:
     void initThread(int tid){}
 
     T * allocate(int tid ){
-        mlqs[tid].allocate(sizeof (T));
+        return mlqs[tid].allocate(sizeof (T));
     }
 
     void deallocate(int tid, T * p){

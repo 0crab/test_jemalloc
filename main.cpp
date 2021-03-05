@@ -7,7 +7,6 @@
 
 using namespace std;
 
-
 static int THREAD_NUM;
 static size_t TEST_NUM;
 static int TEST_TIME;
@@ -55,7 +54,8 @@ void concurrent_worker(int tid){
     Block & tblock = blocks[tid];
     for(size_t i = 0; i < TEST_BLOCK_SIZE;i++) {
         tblock.data[i] = m_alloc->allocate(tid);
-        sprintf(tblock.data[i]->buf, "%lld", i);
+
+        sprintf(tblock.data[i]->buf, "%zu", i);
     }
 
     m_alloc->deallocate(tid,tblock.data[0]);
