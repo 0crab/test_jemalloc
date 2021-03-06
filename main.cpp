@@ -3,7 +3,8 @@
 #include <vector>
 
 #include "timer.h"
-#include "mlq/alloc_new.h"
+//#include "debra/reclaimer_debra.h"
+#include "brown_reclaim.h"
 
 using namespace std;
 
@@ -18,7 +19,6 @@ static int BATCH_SIZE;
 
 #define PAD64 volatile char CAT(___padding, __COUNTER__)[64]
 #define PAD volatile char CAT(___padding, __COUNTER__)[128]
-
 
 
 #define BUFFER_TYPE_LEN 50
@@ -39,7 +39,11 @@ struct Block{
 };
 
 Block * blocks;
-typedef AllocNew<BufferType> Alloc;
+//typedef AllocNew<BufferType> Alloc;
+//typedef Reclaimer_debra Alloc;
+
+typedef brown_reclaim<BufferType ,allocator_new<BufferType>, pool_perthread_and_shared<>,reclaimer_debra <>> Alloc;
+
 Alloc * m_alloc;
 Timer * timer;
 ThreadBarrier * threadBarrier;
@@ -56,13 +60,13 @@ void concurrent_worker(int tid){
 
     Block & tblock = blocks[tid];
     for(size_t i = 0; i < TEST_BLOCK_SIZE;i++) {
-        tblock.data[i] = m_alloc->allocate(tid);
+        tblock.data[i] = reinterpret_cast<BufferType *>(m_alloc->allocate(tid));
 
         sprintf(tblock.data[i]->buf, "%zu", i);
     }
 
     for(int i = 0 ; i < BATCH_SIZE; i ++)
-        m_alloc->deallocate(tid,tblock.data[i]);
+        m_alloc->free(reinterpret_cast<uint64_t>(tblock.data[i]));
     op_index = 0;
 
     //start
@@ -76,14 +80,14 @@ void concurrent_worker(int tid){
         for(size_t i = 0; i < TEST_NUM / BATCH_SIZE ; i ++){
 
             for(int j = 0; j < BATCH_SIZE; j++){
-                tblock.data[(op_index + j) % TEST_BLOCK_SIZE] = m_alloc->allocate(tid);
+                tblock.data[(op_index + j) % TEST_BLOCK_SIZE] = reinterpret_cast<BufferType *>(m_alloc->allocate(tid));
             }
 
             size_t next_index =( op_index +  BATCH_SIZE ) % TEST_BLOCK_SIZE;
 
             for(int j = 0; j < BATCH_SIZE; j++){
                 read_cumulate += *(size_t *)tblock.data[(next_index + j) % TEST_BLOCK_SIZE];
-                m_alloc->deallocate(tid,tblock.data[(next_index+j)% TEST_BLOCK_SIZE]);
+                m_alloc->free(reinterpret_cast<uint64_t>(tblock.data[(next_index + j) % TEST_BLOCK_SIZE]));
             }
 
             op_index = next_index;
