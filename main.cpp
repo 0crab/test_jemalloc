@@ -11,6 +11,7 @@ static int THREAD_NUM;
 static size_t TEST_NUM;
 static int TEST_TIME;
 static size_t TEST_BLOCK_SIZE;
+static int BATCH_SIZE;
 
 #define CAT2(x, y) x##y
 #define CAT(x, y) CAT2(x, y)
@@ -60,7 +61,8 @@ void concurrent_worker(int tid){
         sprintf(tblock.data[i]->buf, "%zu", i);
     }
 
-    m_alloc->deallocate(tid,tblock.data[0]);
+    for(int i = 0 ; i < BATCH_SIZE; i ++)
+        m_alloc->deallocate(tid,tblock.data[i]);
     op_index = 0;
 
     //start
@@ -71,12 +73,19 @@ void concurrent_worker(int tid){
     while(stopMeasure.load(memory_order_relaxed) == 0){
         //long op_count = 0;
 
-        for(size_t i = 0; i < TEST_NUM; i ++){
-            size_t next_index =( op_index + 1 ) % TEST_BLOCK_SIZE;
-            tblock.data[op_index] = m_alloc->allocate(tid);
+        for(size_t i = 0; i < TEST_NUM / BATCH_SIZE ; i ++){
 
-            read_cumulate += *(size_t *)tblock.data[next_index];
-            m_alloc->deallocate(tid,tblock.data[next_index]);
+            for(int j = 0; j < BATCH_SIZE; j++){
+                tblock.data[(op_index + j) % TEST_BLOCK_SIZE] = m_alloc->allocate(tid);
+            }
+
+            size_t next_index =( op_index +  BATCH_SIZE ) % TEST_BLOCK_SIZE;
+
+            for(int j = 0; j < BATCH_SIZE; j++){
+                read_cumulate += *(size_t *)tblock.data[(next_index + j) % TEST_BLOCK_SIZE];
+                m_alloc->deallocate(tid,tblock.data[(next_index+j)% TEST_BLOCK_SIZE]);
+            }
+
             op_index = next_index;
         }
 
@@ -92,13 +101,14 @@ void concurrent_worker(int tid){
 }
 
 int main(int argc, char **argv) {
-    if (argc == 5) {
+    if (argc == 6) {
         THREAD_NUM = stol(argv[1]);
         TEST_BLOCK_SIZE = stol(argv[2]);
         TEST_NUM = stol(argv[3]);
-        TEST_TIME = stol(argv[4]);
+        BATCH_SIZE = stol(argv[4]);
+        TEST_TIME = stol(argv[5]);
     } else {
-        printf("./a.out <thread_num> <block_size> <test_num> <test_time>\n");
+        printf("./a.out <thread_num> <block_size> <test_num> <batch_size> <test_time>\n");
         return 0;
     }
 
