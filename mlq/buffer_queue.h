@@ -6,7 +6,7 @@
 
 
 struct Listhead{
-    Listhead * prev,* next;
+    Listhead * next;
 };
 
 
@@ -14,7 +14,7 @@ struct Listhead{
 
 
 #define GET_QUEUE_NODE(p) \
-            (Listhead *)((POINTER)p-2)
+            (Listhead *)((POINTER)p-1)
 
 #define GET_MEM(listnode) \
             (void *)(listnode+1)
@@ -48,8 +48,7 @@ private:
 
 template <typename T>
 BufferQueue<T>::BufferQueue():unif_size(0),size(0){
-    listhead.prev = & listhead;
-    listhead.next = & listhead;
+    listhead.next = nullptr;
 }
 
 template <typename T>
@@ -78,20 +77,20 @@ T * BufferQueue<T>::remove(uint64_t len,bool & malloc_flag) {
         malloc_flag = false;
         Listhead *head=& listhead;
         Listhead *node;
-        node=head->prev;
-        head->prev->prev->next=head;
-        head->prev=head->prev->prev;
+        node=head->next;
+        head->next=node->next;
+
         size --;
-        node->prev= nullptr;
+
         node->next= nullptr;
         p = GET_MEM(node);
     }else{
         tw_info.num_new_item_malloc++;
         malloc_flag = true;
-        p=malloc(unif_size + 2 * sizeof(POINTER)); //buffer size + two pointer spaces used to construct lists
-        ((Listhead *)p)->prev= nullptr;
+        p=malloc(unif_size + 1 * sizeof(POINTER)); //buffer size + two pointer spaces used to construct lists
+
         ((Listhead *)p)->next= nullptr;
-        p =  (POINTER)p+2;
+        p =  (POINTER)p+1;
     }
     return (T*)p;
 }
@@ -102,11 +101,10 @@ T * BufferQueue<T>::pop() {
     assert(size > 0 );
     Listhead *head=& listhead;
     Listhead *node;
-    node=head->prev;
-    head->prev->prev->next=head;
-    head->prev=head->prev->prev;
+    node=head->next;
+    head->next= node->next;
     size --;
-    node->prev= nullptr;
+
     node->next= nullptr;
     return (T *)GET_MEM(node);
 }
@@ -119,10 +117,9 @@ void BufferQueue<T>::add(void *ptr, uint64_t len) {
 
     Listhead * head= & listhead;
     Listhead * node= GET_QUEUE_NODE(ptr);
-    head->next->prev=node;
-    node->next=head->next;
+    node->next = head->next;
     head->next=node;
-    node->prev=head;
+
     size++;
 }
 

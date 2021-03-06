@@ -43,10 +43,9 @@ T * MultiLevelQueue<T>::allocate(uint64_t len) {
 
     //size is too large,malloc directly
     if(len > MAX_UNIF_SIZE){
-        void * tp=malloc(len + 2 * sizeof(POINTER)); //buffer size + two pointer spaces used to construct lists
-        ((Listhead *)tp)->prev= nullptr;
+        void * tp=malloc(len + 1 * sizeof(POINTER)); //buffer size + two pointer spaces used to construct lists
         ((Listhead *)tp)->next= nullptr;
-        return (T*)((POINTER)tp+2);
+        return (T*)((POINTER)tp+1);
     }
 
     T *p;
@@ -73,7 +72,7 @@ void MultiLevelQueue<T>::deallocate(T *ptr) {
     uint64_t len = sizeof (T);
 
     if(len>MAX_UNIF_SIZE){
-        void * tp = (POINTER)ptr-2;
+        void * tp = (POINTER)ptr-1;
         free(tp);
         return;
     }
